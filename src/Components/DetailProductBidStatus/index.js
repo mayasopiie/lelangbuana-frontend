@@ -1,5 +1,7 @@
 import React, {Component} from 'react'
 import axios from 'axios'
+import Countdown from 'react-countdown-now'
+import NumberFormat from 'react-number-format';
 import { connect } from 'react-redux'
 import {Container, Row, Col, Form, 
     Input, Button} from 'reactstrap'
@@ -34,12 +36,31 @@ const mapStateToProps = (state,props) => {
         auction_id: state.auction.auction_id,
         user_id: state.user.user_id,
         max_bid: state.auction.max_bid,
+        start_bid: state.auction.start_bid,
         highest_bid: state.auction.highest_bid,
         login: state.user.login,
-        username: state.user.login.username
+        username: state.user.login.username,
+        start_date: state.auction.start_date,
+        end_date: state.auction.end_date,
+        bids_multiply: state.auction.bids_multiply
     }
 }
+
 class DetailProductBidStatus extends Component{
+    constructor(props){
+        super(props)
+        this.state={
+            bids_nominal: 0
+        }
+    }
+
+    componentDidMount(){
+        
+    }
+
+    getInitialState(){
+        return ({amount: "0.00"});
+    }
 
     handleChange = (event,props) => {
         this.setState({ 
@@ -49,7 +70,7 @@ class DetailProductBidStatus extends Component{
             max_bid: this.props.max_bid
         })
     }
-    
+
     handleSubmit = event => {
         event.preventDefault()
         
@@ -57,24 +78,8 @@ class DetailProductBidStatus extends Component{
             bids_nominal: this.state.bid_nominal,
             auction_id: this.props.auction_id,
             user_id: localStorage.getItem('user_id'),
-            max_bid: this.state.max_bid
+            status: ""
         }
-
-        // request
-        //     .get(`/users/${this.props.username}`)
-        //     .then((response) => {
-        //         const action = {
-        //             type: 'SET_ID',
-        //             payload: {
-        //             user_id: response.data.user.user_id
-        //             }
-        //         }
-        //         this.props.dispatch(action)
-        //         console.log(action);
-        //         console.log("user_id : ", this.props.user_id)
-                
-        //     })
-        //     .catch(error=>{console.log(error)})
         console.log("PAYLOAD",payload);
         
         request
@@ -95,48 +100,81 @@ class DetailProductBidStatus extends Component{
     }
 
     render(){
+
+        let startBid
+        let enableCountDown
+        this.props.highest_bid>=this.props.start_bid
+        ? startBid = this.props.highest_bid + this.props.bids_multiply
+        : startBid = this.props.start_bid + this.props.bids_multiply
+
+        let now = Date.now()
+        let end = Date.parse(this.props.end_date)
+        let start = Date.parse(this.props.start_date)
+
+        now<=end
+        ? enableCountDown = <Countdown  date={ start + (end-start)}><h3>CLOSED</h3></Countdown>
+        : enableCountDown = <h3>CLOSED</h3>
+        
+        
+        let enableBid
+        console.log("STATUS: ", this.props.status)
+        
+        this.props.status === "ongoing"
+        ? enableBid = 
+            <div>
+            <Row style={styles.contains}>
+                    <Col><span>Bid Increment : <NumberFormat value={this.props.bids_multiply} displayType={'text'} thousandSeparator={true} prefix={'IDR. '} /> </span></Col>
+                </Row>
+            <Row style={styles.contains}>
+                <Col >
+                    <Form lg="6">
+                        <Input
+                            onChange={this.handleChange}
+                            type="number"
+                            name="bid_nominal"
+                            id="bid_nominal"
+                            placeholder="IDR."
+                            step={this.props.bids_multiply}
+                            min={startBid}
+                        />
+                    </Form>
+                </Col>
+            </Row>
+            <Row style={styles.contains}> 
+                <Col>
+                    <Button style={styles.button} onClick={this.handleSubmit}> Bid Now</Button>
+                </Col>
+            </Row>
+            <Row>
+                <Col><Button color="warning" style={styles.button}> Win for Buyout Price </Button></Col>
+            </Row>
+            </div>
+        : enableBid = <div></div>
+        
         return(
             <div style={styles.text}>
                 <Container >  
                     <Row><Col style={styles.title}><span>Current Price</span></Col></Row>
-                    <Row><Col><span>IDR. </span></Col></Row>
-                    <Row style={styles.contains}><Col ><span>{this.props.openingPrice}</span></Col></Row>
+                    <Row style={styles.contains}><Col ><span> <NumberFormat value={this.props.highest_bid} displayType={'text'} thousandSeparator={true} prefix={'IDR. '}/> </span></Col></Row>
                     <hr/>
                     <Row><Col style={styles.title}><span>Buyout Price</span></Col></Row>
-                    <Row style={styles.contains}><Col><span>IDR {this.props.buyOutPrice}</span></Col></Row> 
+                    <Row style={styles.contains}><Col><span> <NumberFormat value={this.props.buyOutPrice} displayType={'text'} thousandSeparator={true} prefix={'IDR. '} /> </span></Col></Row> 
                     <hr/>
-                    <Row><Col style={styles.title}><span>Time Remaining</span></Col></Row>
-                    <Row style={styles.contains}><Col><span></span></Col></Row>
+                    <Row><Col style={styles.title}>
+                    <span>Time Remaining 
+                    </span>
+                    </Col></Row>
+                    <Row style={styles.contains}><Col><span>
+                    {enableCountDown}
+                        </span></Col></Row>
                     <hr/>
                     <Row><Col style={styles.title}><span>Seller</span></Col></Row>
                     <Row style={styles.contains}><Col><span>{this.props.seller}</span></Col></Row>
                     <hr/>
-                    <Row style={styles.contains}>
-                        <Col><span>Bid Increment : IDR. </span></Col>
-                    </Row>
-                    <Row style={styles.contains}>
-                        <Col >
-                            <Form lg="6">
-                                <Input
-                                    onChange={this.handleChange}
-                                    type="number"
-                                    name="bid_nominal"
-                                    id="bid_nominal"
-                                    placeholder="IDR."
-                                    step="5000"
-                                    min={this.props.highest_bid+5000}
-                                />
-                            </Form>
-                        </Col>
-                    </Row>
-                    <Row style={styles.contains}> 
-                        <Col>
-                            <Button style={styles.button} onClick={this.handleSubmit}> Bid Now</Button>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col><Button color="warning" style={styles.button}> Win for Buyout Price </Button></Col>
-                    </Row>
+                    
+                    {/* <CurrencyInput className="form-control" value={this.state.amount} onChangeEvent={this.handleChangeCurrencyInput} onClick={this.handleClick}/> */}
+                    
+                    {enableBid}
                 </Container>
             </div>
         )

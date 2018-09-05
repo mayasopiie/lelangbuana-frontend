@@ -5,6 +5,7 @@ import { connect } from 'react-redux'
 import { Link, withRouter } from 'react-router-dom'
 import CardAuction from '../Components/CardAuction'
 import Categories from '../Components/Categories'
+import Profile from '../Components/Profile'
 
 import { Container, Row, Col } from 'reactstrap'
 
@@ -30,8 +31,6 @@ const mapStateToProps = state => {
     }
 }
 
-const auctions = []
-
 const categories = [
     { name: 'Computers', categories: ['Laptop', 'PC', 'Netbook'] },
     {
@@ -43,6 +42,14 @@ const categories = [
 ]
 
 class Home extends Component {
+
+    state = {
+        // bidData: 0,
+        // auction_id: this.props.auctionID,
+        // max_bid : 0,
+        highest_bid: this.props.highest_bid
+    }
+
     addItem(item) {
         this.setState(prevState => {
             return {
@@ -52,7 +59,6 @@ class Home extends Component {
     }
 
     componentDidMount() {
-        const auctions = []
         request
             .get('/auctions')
             .then(response => {
@@ -60,14 +66,52 @@ class Home extends Component {
             })
             .then(data => {
                 data.forEach(item => {
+
+                    console.log("AUCTION_ID : ", item.auction_id);
+                    
+                    request
+                    .get(`/bids/auction_id/${item.auction_id}`)
+                    .then(response => {
+                        // const bids = []
+                        // bids.push(response.data.bidData)
+                        response.data.bidData.map((item,index) => {
+                            if (item.bids_nominal>=this.state.highest_bid) 
+                            {
+                                this.state.highest_bid = item.bids_nominal
+                            }
+                            
+                            return ( 
+                                this.state.highest_bid
+                            )
+                        })
+                        console.log("HIGHEST BID : ", this.state.highest_bid);
+                        
+                            // this.setState(() => {
+                            //     return { 
+                            //         bidData: response.data.bidData.length,
+                            //         highest_bid: highest_bid
+                            //     }
+                            // })
+                            // this.props.dispatch({
+                            //     type: 'UPDATE_BID_AUCTION',
+                            //     payload: {
+                            //       highest_bid: this.state.highest_bid
+                            //     }
+                            //   })
+                        })
+                        .catch(error => {
+                            console.log(error)
+                        })
+
+                    
                     this.setState(prevState => {
-                        console.log(prevState.auctions)
                         return {
                             auctions: prevState.auctions.concat({
                                 user: item.auction_id,
                                 title: item.title,
                                 src: item.item_photo,
-                                description: item.item_description
+                                description: item.item_description,
+                                status: item.status
                             })
                         }
                     })
@@ -77,6 +121,8 @@ class Home extends Component {
             .catch(error => {
                 console.log(error)
             })
+
+        
     }
     constructor(props) {
         super(props)
@@ -113,33 +159,49 @@ class Home extends Component {
     }
 
     render() {
-        console.log("State  : ", this.state.auctions);
-        
         let listAuction = this.state.auctions.map((item, index) => {
-            return (
-                <Link
-                    key={index}
-                    to={`/auctions/${item.user}`}
-                    params={{ id: item.user }}
-                >
-                    <CardAuction
-                        key={item.title + index}
-                        user={item.user}
-                        title={item.title}
-                        src={item.src}
-                        description={item.description}
-                    />
-                </Link>
-            )
+
+                return (
+                    <Link
+                        key={index}
+                        to={`/auctions/${item.user}`}
+                        params={{ id: item.user }}
+                        status={item.status}
+                    >
+                        <CardAuction
+                            key={item.title + index}
+                            user={item.user}
+                            title={item.title}
+                            src={item.src}
+                            description={item.description}
+                            status={item.status}
+                        />
+                    </Link>
+                )
+            
         })
 
         let listCategories = categories.map(this.createCategories)
+
+        let profiles
+        if (localStorage.getItem('token')){
+            profiles = <div>
+            <Profile/>
+            <br/>
+            </div>
+        }
+        else {
+            profiles = <div></div>
+        }
         return (
             <div style={styles.space}>
                 <Container fluid>
                     <Row>
-                        <Col sm="2">{listCategories}</Col>
-                        <Col sm="10">
+                        <Col sm="3">
+                            {profiles}
+                            {listCategories}       
+                        </Col>
+                        <Col sm="9">
                             <Row>{listAuction}</Row>
                         </Col>
                     </Row>

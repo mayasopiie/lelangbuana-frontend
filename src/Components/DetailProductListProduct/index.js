@@ -4,6 +4,7 @@ import PropTypes from 'prop-types'
 import { connect } from 'react-redux'
 import axios from 'axios'
 import moment from 'moment'
+import NumberFormat from 'react-number-format';
 
 import { ListGroup, ListGroupItem } from 'reactstrap'
 
@@ -11,7 +12,8 @@ const mapStateToProps = (state,props) => {
     return {
         bidData: state.auction.bidData,
         max_bid: state.auction.max_bid,
-        highest_bid: state.auction.highest_bid
+        highest_bid: state.auction.highest_bid,
+        bids: state.auction.bids
     }
 }
 
@@ -28,10 +30,12 @@ const request = axios.create({
     headers: { Authorization: '' }
 })
 
-const bids = []
-let highest_bid = 0
+// const currentTime = moment()
 
-const currentTime = moment()
+// let highest_bid = 0
+
+const nowDate = moment().format('ll');
+
 
 class DetailProductListProduct extends Component {
 
@@ -52,33 +56,17 @@ class DetailProductListProduct extends Component {
     }
 
     componentDidMount() {
-        request
-        .get(`/bids/auction_id/${this.props.params}`)
-        .then(response => {
             
-            bids.push(response.data.bidData)
-            response.data.bidData.map((item,index) => {
-                if (item.bids_nominal>=highest_bid) 
-                {
-                    highest_bid = item.bids_nominal
+        request
+        .get(`/auctions/${this.props.params}`)
+        .then(response => {
+            this.props.dispatch({
+                type: 'SET_REMAINING_TIME',
+                payload: {
+                    start_date: response.data.start_date,
+                    end_date: response.data.end_date
                 }
-                
-                return ( 
-                    highest_bid
-                )
-            })
-                this.setState(() => {
-                    return { 
-                        bidData: response.data.bidData.length,
-                        highest_bid: highest_bid
-                    }
                 })
-                this.props.dispatch({
-                    type: 'UPDATE_BID_AUCTION',
-                    payload: {
-                      highest_bid: this.state.highest_bid
-                    }
-                  })
             })
             .catch(error => {
                 console.log(error)
@@ -90,24 +78,24 @@ class DetailProductListProduct extends Component {
             <ListGroup flush style={styles.text}>
                 <ListGroupItem>Quantity : {this.props.quantity}</ListGroupItem>
                 <ListGroupItem>
-                    Opening Price : {this.props.openingPrice}
+                    Opening Price : <NumberFormat value={this.props.openingPrice} displayType={'text'} thousandSeparator={true} prefix={'IDR. '} />
                 </ListGroupItem>
-                <ListGroupItem>Number of Bid : {this.state.bidData}</ListGroupItem>
+                <ListGroupItem>Number of Bid : {this.props.bids}</ListGroupItem>
                 <ListGroupItem>
-                    Highest Bidder : {this.props.highest_bid}
-                </ListGroupItem>
-                <ListGroupItem>
-                    Opening Time : {this.props.openingTime}
+                    Highest Bidder : <NumberFormat value={this.props.highest_bid} displayType={'text'} thousandSeparator={true} prefix={'IDR. '} />
                 </ListGroupItem>
                 <ListGroupItem>
-                    Closing Time : {this.props.endTime}
+                    Opening Time : {moment(this.props.openingTime).format('lll')}
                 </ListGroupItem>
-                <ListGroupItem>Current Time : {currentTime.format('ll')}</ListGroupItem>
+                <ListGroupItem>
+                    Closing Time : {moment(this.props.endTime).format('lll')}
+                </ListGroupItem>
+                <ListGroupItem>Current Time: {nowDate} </ListGroupItem>
                 <ListGroupItem>Auction ID : {this.props.auctionID}</ListGroupItem>
                 <ListGroupItem>
                     Item Condition : {this.props.condition}
                 </ListGroupItem>
-                <ListGroupItem>Shipping Paid By</ListGroupItem>
+                <ListGroupItem>Shipping Paid By : Customer</ListGroupItem>
                 <hr />
             </ListGroup>
         )
